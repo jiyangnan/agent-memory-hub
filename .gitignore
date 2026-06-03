@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Local runtime state generated in user instances.
+.curator/lock.json
+.curator/runs/
+.curator/local-sync/
+.curator/tmp/
+.curator/backups/
+*.tmp
+
