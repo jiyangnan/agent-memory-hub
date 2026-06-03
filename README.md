@@ -38,3 +38,10 @@ agent-memory inbox-add \
 ## Status
 
 This repository is the open-source framework. User-specific memory state is created by `agent-memory setup`.
+
+## Docs
+
+- [Quickstart](docs/quickstart.md)
+- [Architecture](docs/architecture.md)
+- [Adapters](docs/adapters.md)
+- [Security](docs/security.md)

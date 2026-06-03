@@ -1,0 +1,23 @@
+id: claude
+name: Claude Code
+version: 1
+
+primary_memory:
+  path: "~/.claude/memory/MEMORY.md"
+  mode: managed_section
+  marker: shared
+
+allowlist:
+  - "~/.claude/memory"
+
+cold_start:
+  install_mode: append
+  recommended_path: "~/.claude/memory/MEMORY.md"
+
+skills:
+  target_template: "~/.claude/skills/<skill>/SKILL.md"
+
+safety:
+  reject_symlink_outside_allowlist: true
+  backup_before_write: true
+
