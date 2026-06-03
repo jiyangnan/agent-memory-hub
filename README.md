@@ -59,6 +59,7 @@ This repository is the open-source framework. User-specific memory state is crea
 - [Quickstart](docs/quickstart.md)
 - [Architecture](docs/architecture.md)
 - [Adapters](docs/adapters.md)
+- [Onboarding](docs/onboarding.md)
 - [Sync](docs/sync.md)
 - [Refresh](docs/refresh.md)
 - [Cloud](docs/cloud.md)

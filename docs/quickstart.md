@@ -94,3 +94,5 @@ agent-memory cloud-push
 agent-memory refresh --machine laptop --agent codex
 agent-memory refresh --machine laptop --agent codex --apply
 ```
+
+For additional machines or agents, see [Onboarding](onboarding.md).
