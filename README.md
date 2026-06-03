@@ -42,6 +42,9 @@ agent-memory inbox-add \
 agent-memory status
 agent-memory curate-dry-run
 agent-memory curate-apply --machine laptop --agent codex
+agent-memory cloud-status
+agent-memory cloud-save --message "Update shared memory"
+agent-memory cloud-push
 ```
 
 ## Status

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from .bootstrap import render_bootstrap
+from .cloud import cloud_pull, cloud_push, cloud_save, cloud_status
 from .config import load_config
 from .curator import curate_apply, scan_status
 from .inbox import add_inbox_note
@@ -59,6 +60,18 @@ def build_parser() -> argparse.ArgumentParser:
     curate = subparsers.add_parser("curate-apply", help="Merge clean pending notes into canonical memory")
     curate.add_argument("--machine", required=True)
     curate.add_argument("--agent", required=True)
+
+    cloud_status_parser = subparsers.add_parser("cloud-status", help="Check Git remote readiness")
+    cloud_status_parser.add_argument("--remote", default="origin")
+    cloud_pull_parser = subparsers.add_parser("cloud-pull", help="Fast-forward pull latest shared state")
+    cloud_pull_parser.add_argument("--remote", default="origin")
+    cloud_pull_parser.add_argument("--branch", default=None)
+    cloud_save_parser = subparsers.add_parser("cloud-save", help="Commit shared memory state only")
+    cloud_save_parser.add_argument("--message", required=True)
+    cloud_save_parser.add_argument("--remote", default="origin")
+    cloud_push_parser = subparsers.add_parser("cloud-push", help="Push committed shared state")
+    cloud_push_parser.add_argument("--remote", default="origin")
+    cloud_push_parser.add_argument("--branch", default=None)
 
     return parser
 
@@ -142,6 +155,26 @@ def main(argv: list[str] | None = None) -> int:
         result = curate_apply(root, machine=args.machine, agent=args.agent)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    if args.command == "cloud-status":
+        result = cloud_status(root, remote=args.remote)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["status"] == "ready" else 2
+
+    if args.command == "cloud-pull":
+        result = cloud_pull(root, remote=args.remote, branch=args.branch)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["status"] == "up_to_date" else 2
+
+    if args.command == "cloud-save":
+        result = cloud_save(root, message=args.message, remote=args.remote)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["status"] in ("committed", "no_change") else 2
+
+    if args.command == "cloud-push":
+        result = cloud_push(root, remote=args.remote, branch=args.branch)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["status"] == "pushed" else 2
 
     parser.print_help()
     return 0

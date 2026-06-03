@@ -231,6 +231,28 @@ class CliTests(unittest.TestCase):
             self.assertEqual(apply.returncode, 0)
             self.assertIn('"accepted": 1', apply.stdout)
 
+    def test_cli_cloud_status_reports_missing_remote(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(
+                [sys.executable, "-m", "agent_memory.cli", "--root", str(root), "setup", "--workspace", "demo"],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            subprocess.run(["git", "init"], cwd=root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            status = subprocess.run(
+                [sys.executable, "-m", "agent_memory.cli", "--root", str(root), "cloud-status"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(status.returncode, 2)
+            self.assertIn('"status": "missing_remote"', status.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
