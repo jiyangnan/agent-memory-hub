@@ -20,3 +20,11 @@ Each adapter declares:
 
 Adapters must never sync whole runtime directories.
 
+## Built-In Adapters
+
+- `codex`: `~/.codex/memory/shared.md`
+- `claude`: `~/.claude/memory/shared.md`
+- `openclaw`: `~/.openclaw/workspace/MEMORY.md`
+- `hermes`: `~/.hermes/memories/MEMORY.md`
+
+Users can override `primary_memory` at registration time.

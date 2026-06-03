@@ -9,6 +9,13 @@ agent-memory cloud-save --message "Update shared memory"
 agent-memory cloud-push
 ```
 
+Downstream agents normally use:
+
+```bash
+agent-memory refresh --machine laptop --agent codex
+agent-memory refresh --machine laptop --agent codex --apply
+```
+
 Safety rules:
 
 - `cloud-save` stages only shared-state paths.
@@ -16,4 +23,3 @@ Safety rules:
 - Dirty worktrees block pull and push.
 - Pull uses fast-forward only.
 - Divergence requires manual resolution.
-

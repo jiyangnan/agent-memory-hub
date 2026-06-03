@@ -411,6 +411,78 @@ class CliTests(unittest.TestCase):
             self.assertIn('"status": "installed"', result.stdout)
             self.assertIn("agent-memory-hub:BEGIN shared", target.read_text(encoding="utf-8"))
 
+    def test_cli_refresh_reports_pull_blocker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            home = Path(tmp) / "home"
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "setup",
+                    "--workspace",
+                    "demo",
+                    "--machine",
+                    "laptop",
+                    "--adapter",
+                    "codex",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "register-agent",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--adapter",
+                    "codex",
+                    "--primary-memory",
+                    "~/.codex/memory/shared.md",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "refresh",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--home",
+                    str(home),
+                    "--apply",
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('"status": "pull_blocked"', result.stdout)
+            self.assertIn('"status": "not_git"', result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

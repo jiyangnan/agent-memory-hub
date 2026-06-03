@@ -9,6 +9,7 @@ from .cloud import cloud_pull, cloud_push, cloud_save, cloud_status
 from .config import load_config
 from .curator import curate_apply, scan_status
 from .inbox import add_inbox_note
+from .refresh import refresh_shared_memory
 from .registry import register_agent, render_members
 from .setup import setup_workspace
 from .sync import install_marker, sync_apply, sync_dry_run
@@ -82,6 +83,14 @@ def build_parser() -> argparse.ArgumentParser:
     sync_mode.add_argument("--dry-run", action="store_true")
     sync_mode.add_argument("--install-marker", action="store_true")
     sync_mode.add_argument("--apply", action="store_true")
+
+    refresh = subparsers.add_parser("refresh", help="Pull cloud memory and sync it into this agent")
+    refresh.add_argument("--machine", required=True)
+    refresh.add_argument("--agent", required=True)
+    refresh.add_argument("--home", default=str(Path.home()))
+    refresh.add_argument("--remote", default="origin")
+    refresh.add_argument("--branch", default=None)
+    refresh.add_argument("--apply", action="store_true")
 
     return parser
 
@@ -201,6 +210,24 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         blocked_statuses = {"unsafe_target", "missing_marker", "missing_target"}
         return 2 if result["status"] in blocked_statuses else 0
+
+    if args.command == "refresh":
+        home = Path(args.home).expanduser().resolve()
+        try:
+            result = refresh_shared_memory(
+                root,
+                home=home,
+                machine=args.machine,
+                agent=args.agent,
+                apply=args.apply,
+                remote=args.remote,
+                branch=args.branch,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            print(str(exc))
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["status"] in ("sync_ready", "sync_applied") else 2
 
     parser.print_help()
     return 0

@@ -27,7 +27,28 @@ inbox/
 .curator/
 ```
 
-## 3. Classify Memory Intent
+## 3. Register An Agent
+
+```bash
+agent-memory register-agent \
+  --machine laptop \
+  --agent codex \
+  --adapter codex \
+  --primary-memory '~/.codex/memory/shared.md'
+```
+
+## 4. Install The Managed Memory Section
+
+```bash
+agent-memory sync \
+  --machine laptop \
+  --agent codex \
+  --install-marker
+```
+
+This adds the shared-memory marker block to the agent's memory file and keeps the rest of that file local.
+
+## 5. Classify Memory Intent
 
 ```bash
 agent-memory trigger "保存到共享记忆"
@@ -43,7 +64,7 @@ refresh
 local
 ```
 
-## 4. Write An Inbox Note
+## 6. Write An Inbox Note
 
 ```bash
 agent-memory inbox-add \
@@ -57,3 +78,19 @@ agent-memory inbox-add \
   --destination memory/lessons.md
 ```
 
+## 7. Curate And Save
+
+```bash
+agent-memory status
+agent-memory curate-dry-run
+agent-memory curate-apply --machine laptop --agent codex
+agent-memory cloud-save --message "Update shared memory"
+agent-memory cloud-push
+```
+
+## 8. Refresh Downstream Memory
+
+```bash
+agent-memory refresh --machine laptop --agent codex
+agent-memory refresh --machine laptop --agent codex --apply
+```

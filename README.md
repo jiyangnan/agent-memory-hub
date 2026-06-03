@@ -27,6 +27,7 @@ agent-memory register-agent \
   --adapter codex \
   --primary-memory '~/.codex/memory/shared.md'
 agent-memory bootstrap --machine laptop --agent codex
+agent-memory sync --machine laptop --agent codex --install-marker
 agent-memory trigger "保存到共享记忆"
 agent-memory trigger "拉取一下云端的记忆"
 agent-memory trigger "记住这个"
@@ -45,6 +46,8 @@ agent-memory curate-apply --machine laptop --agent codex
 agent-memory cloud-status
 agent-memory cloud-save --message "Update shared memory"
 agent-memory cloud-push
+agent-memory refresh --machine laptop --agent codex
+agent-memory refresh --machine laptop --agent codex --apply
 ```
 
 ## Status
@@ -56,4 +59,7 @@ This repository is the open-source framework. User-specific memory state is crea
 - [Quickstart](docs/quickstart.md)
 - [Architecture](docs/architecture.md)
 - [Adapters](docs/adapters.md)
+- [Sync](docs/sync.md)
+- [Refresh](docs/refresh.md)
+- [Cloud](docs/cloud.md)
 - [Security](docs/security.md)
