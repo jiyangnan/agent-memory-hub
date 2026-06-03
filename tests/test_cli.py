@@ -253,6 +253,164 @@ class CliTests(unittest.TestCase):
             self.assertEqual(status.returncode, 2)
             self.assertIn('"status": "missing_remote"', status.stdout)
 
+    def test_cli_sync_dry_run_previews_without_modifying_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            home = Path(tmp) / "home"
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "setup",
+                    "--workspace",
+                    "demo",
+                    "--machine",
+                    "laptop",
+                    "--adapter",
+                    "codex",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "register-agent",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--adapter",
+                    "codex",
+                    "--primary-memory",
+                    "~/.codex/memory/shared.md",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            (root / "memory" / "lessons.md").write_text("# Lessons\n\nShared CLI rule.\n", encoding="utf-8")
+            target = home / ".codex" / "memory" / "shared.md"
+            target.parent.mkdir(parents=True)
+            original = (
+                "Local only.\n"
+                "<!-- agent-memory-hub:BEGIN shared -->\n"
+                "old shared\n"
+                "<!-- agent-memory-hub:END shared -->\n"
+            )
+            target.write_text(original, encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "sync",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--home",
+                    str(home),
+                    "--dry-run",
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn('"status": "would_update"', result.stdout)
+            self.assertIn("Shared CLI rule.", result.stdout)
+            self.assertEqual(target.read_text(encoding="utf-8"), original)
+
+    def test_cli_sync_install_marker_adds_managed_section(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            home = Path(tmp) / "home"
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "setup",
+                    "--workspace",
+                    "demo",
+                    "--machine",
+                    "laptop",
+                    "--adapter",
+                    "codex",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "register-agent",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--adapter",
+                    "codex",
+                    "--primary-memory",
+                    "~/.codex/memory/shared.md",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            target = home / ".codex" / "memory" / "shared.md"
+            target.parent.mkdir(parents=True)
+            target.write_text("Existing local memory.\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "sync",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--home",
+                    str(home),
+                    "--install-marker",
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn('"status": "installed"', result.stdout)
+            self.assertIn("agent-memory-hub:BEGIN shared", target.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

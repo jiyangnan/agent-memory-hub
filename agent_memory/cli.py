@@ -11,6 +11,7 @@ from .curator import curate_apply, scan_status
 from .inbox import add_inbox_note
 from .registry import register_agent, render_members
 from .setup import setup_workspace
+from .sync import install_marker, sync_apply, sync_dry_run
 from .triggers import classify_trigger
 
 
@@ -72,6 +73,15 @@ def build_parser() -> argparse.ArgumentParser:
     cloud_push_parser = subparsers.add_parser("cloud-push", help="Push committed shared state")
     cloud_push_parser.add_argument("--remote", default="origin")
     cloud_push_parser.add_argument("--branch", default=None)
+
+    sync = subparsers.add_parser("sync", help="Sync canonical shared memory into an agent memory file")
+    sync.add_argument("--machine", required=True)
+    sync.add_argument("--agent", required=True)
+    sync.add_argument("--home", default=str(Path.home()))
+    sync_mode = sync.add_mutually_exclusive_group(required=True)
+    sync_mode.add_argument("--dry-run", action="store_true")
+    sync_mode.add_argument("--install-marker", action="store_true")
+    sync_mode.add_argument("--apply", action="store_true")
 
     return parser
 
@@ -175,6 +185,22 @@ def main(argv: list[str] | None = None) -> int:
         result = cloud_push(root, remote=args.remote, branch=args.branch)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["status"] == "pushed" else 2
+
+    if args.command == "sync":
+        home = Path(args.home).expanduser().resolve()
+        try:
+            if args.dry_run:
+                result = sync_dry_run(root, home=home, machine=args.machine, agent=args.agent)
+            elif args.install_marker:
+                result = install_marker(root, home=home, machine=args.machine, agent=args.agent)
+            else:
+                result = sync_apply(root, home=home, machine=args.machine, agent=args.agent)
+        except (FileNotFoundError, ValueError) as exc:
+            print(str(exc))
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        blocked_statuses = {"unsafe_target", "missing_marker", "missing_target"}
+        return 2 if result["status"] in blocked_statuses else 0
 
     parser.print_help()
     return 0
