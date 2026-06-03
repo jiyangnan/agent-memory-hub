@@ -76,6 +76,79 @@ class CliTests(unittest.TestCase):
             self.assertIn("inbox note created", inbox.stdout)
             self.assertTrue(list((root / "inbox" / "laptop" / "codex").glob("*.md")))
 
+    def test_cli_register_members_and_bootstrap(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "setup",
+                    "--workspace",
+                    "demo",
+                    "--machine",
+                    "laptop",
+                    "--adapter",
+                    "codex",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            register = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "register-agent",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--adapter",
+                    "codex",
+                    "--primary-memory",
+                    "~/.codex/memory/shared.md",
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(register.returncode, 0)
+
+            members = subprocess.run(
+                [sys.executable, "-m", "agent_memory.cli", "--root", str(root), "members"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertIn("laptop/codex", members.stdout)
+
+            bootstrap = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "bootstrap",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertIn("agent memory hub Cold Start Contract", bootstrap.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

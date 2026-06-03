@@ -4,8 +4,10 @@ import argparse
 import json
 from pathlib import Path
 
+from .bootstrap import render_bootstrap
 from .config import load_config
 from .inbox import add_inbox_note
+from .registry import register_agent, render_members
 from .setup import setup_workspace
 from .triggers import classify_trigger
 
@@ -37,6 +39,19 @@ def build_parser() -> argparse.ArgumentParser:
     inbox.add_argument("--why", required=True)
     inbox.add_argument("--evidence", required=True)
     inbox.add_argument("--destination", required=True)
+
+    register = subparsers.add_parser("register-agent", help="Register a machine/agent pair")
+    register.add_argument("--machine", required=True)
+    register.add_argument("--agent", required=True)
+    register.add_argument("--adapter", default="")
+    register.add_argument("--primary-memory", required=True)
+    register.add_argument("--skill-target", default="")
+
+    subparsers.add_parser("members", help="Show registered agents")
+
+    bootstrap = subparsers.add_parser("bootstrap", help="Render an agent cold-start contract")
+    bootstrap.add_argument("--machine", required=True)
+    bootstrap.add_argument("--agent", required=True)
 
     return parser
 
@@ -83,6 +98,30 @@ def main(argv: list[str] | None = None) -> int:
             print(str(exc))
             return 2
         print(f"inbox note created: {note['path'].relative_to(root)}")
+        return 0
+
+    if args.command == "register-agent":
+        record = register_agent(
+            root,
+            machine=args.machine,
+            agent=args.agent,
+            adapter=args.adapter,
+            primary_memory=args.primary_memory,
+            skill_target=args.skill_target,
+        )
+        print(json.dumps(record, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "members":
+        print(render_members(root))
+        return 0
+
+    if args.command == "bootstrap":
+        try:
+            print(render_bootstrap(root, machine=args.machine, agent=args.agent))
+        except ValueError as exc:
+            print(str(exc))
+            return 2
         return 0
 
     parser.print_help()

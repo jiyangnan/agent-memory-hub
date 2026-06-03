@@ -21,6 +21,12 @@ agent learns
 ```bash
 python3 -m pip install -e .
 agent-memory setup --workspace my-agent-memory --machine laptop --adapter codex
+agent-memory register-agent \
+  --machine laptop \
+  --agent codex \
+  --adapter codex \
+  --primary-memory '~/.codex/memory/shared.md'
+agent-memory bootstrap --machine laptop --agent codex
 agent-memory trigger "保存到共享记忆"
 agent-memory trigger "拉取一下云端的记忆"
 agent-memory trigger "记住这个"
