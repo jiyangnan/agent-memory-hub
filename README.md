@@ -24,9 +24,17 @@ agent-memory setup --workspace my-agent-memory --machine laptop --adapter codex
 agent-memory trigger "保存到共享记忆"
 agent-memory trigger "拉取一下云端的记忆"
 agent-memory trigger "记住这个"
+agent-memory inbox-add \
+  --machine laptop \
+  --agent codex \
+  --type lesson \
+  --scope global \
+  --fact "Shared memory should be curated." \
+  --why "Direct canonical edits can conflict." \
+  --evidence "first setup" \
+  --destination memory/lessons.md
 ```
 
 ## Status
 
 This repository is the open-source framework. User-specific memory state is created by `agent-memory setup`.
-
