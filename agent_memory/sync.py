@@ -15,12 +15,15 @@ END = "<!-- agent-memory-hub:END shared -->"
 
 
 def load_adapter(root: Path, adapter_id: str) -> dict:
-    path = root / "adapters" / f"{adapter_id}.yaml"
-    if not path.exists():
-        path = Path(__file__).resolve().parents[1] / "adapters" / f"{adapter_id}.yaml"
-    if not path.exists():
-        raise FileNotFoundError(f"missing adapter manifest: {adapter_id}")
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+    candidates = [
+        root / "adapters" / f"{adapter_id}.yaml",
+        Path(__file__).resolve().parent / "adapters" / f"{adapter_id}.yaml",
+        Path(__file__).resolve().parents[1] / "adapters" / f"{adapter_id}.yaml",
+    ]
+    for path in candidates:
+        if path.exists():
+            return yaml.safe_load(path.read_text(encoding="utf-8"))
+    raise FileNotFoundError(f"missing adapter manifest: {adapter_id}")
 
 
 def expand_home(home: Path, value: str) -> Path:
@@ -153,4 +156,3 @@ def sync_apply(root: Path, *, home: Path, machine: str, agent: str) -> dict:
     target.write_text(updated, encoding="utf-8")
     write_local_sync_state(root, machine=machine, agent=agent)
     return {"status": "applied", "target_path": str(target), "backup_path": str(backup)}
-

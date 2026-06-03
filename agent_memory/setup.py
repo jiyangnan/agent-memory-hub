@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import yaml
@@ -14,6 +15,13 @@ MEMORY_FILES = {
     "infra.md": "# Infrastructure\n\n",
     "bootstrap.md": "# Bootstrap\n\n",
 }
+
+
+def builtin_adapter_path(adapter: str) -> Path:
+    packaged = Path(__file__).resolve().parent / "adapters" / f"{adapter}.yaml"
+    if packaged.exists():
+        return packaged
+    return Path(__file__).resolve().parents[1] / "adapters" / f"{adapter}.yaml"
 
 
 def setup_workspace(
@@ -84,6 +92,13 @@ def setup_workspace(
         for adapter in adapters:
             (root / "inbox" / machine / adapter).mkdir(parents=True, exist_ok=True)
 
+    adapters_dir = root / "adapters"
+    adapters_dir.mkdir(exist_ok=True)
+    for adapter in adapters:
+        source = builtin_adapter_path(adapter)
+        if source.exists():
+            shutil.copy2(source, adapters_dir / source.name)
+
     curator_dir = root / ".curator"
     curator_dir.mkdir(exist_ok=True)
     (curator_dir / "manifest.json").write_text(
@@ -93,4 +108,3 @@ def setup_workspace(
     (curator_dir / "processed.jsonl").write_text("", encoding="utf-8")
 
     return {"status": "created", "path": str(config_file)}
-

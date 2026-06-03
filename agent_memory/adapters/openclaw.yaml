@@ -1,0 +1,22 @@
+id: openclaw
+name: OpenClaw
+version: 1
+
+primary_memory:
+  path: "~/.openclaw/workspace/MEMORY.md"
+  mode: managed_section
+  marker: shared
+
+allowlist:
+  - "~/.openclaw/workspace"
+
+cold_start:
+  install_mode: direct_memory
+  recommended_path: "~/.openclaw/workspace/MEMORY.md"
+
+skills:
+  target_template: "~/.openclaw/skills/<skill>/SKILL.md"
+
+safety:
+  reject_symlink_outside_allowlist: true
+  backup_before_write: true

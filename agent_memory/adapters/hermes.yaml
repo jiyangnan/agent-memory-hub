@@ -1,0 +1,22 @@
+id: hermes
+name: Hermes Agent
+version: 1
+
+primary_memory:
+  path: "~/.hermes/memories/MEMORY.md"
+  mode: managed_section
+  marker: shared
+
+allowlist:
+  - "~/.hermes/memories"
+
+cold_start:
+  install_mode: direct_memory
+  recommended_path: "~/.hermes/memories/MEMORY.md"
+
+skills:
+  target_template: "~/.hermes/skills/<skill>/SKILL.md"
+
+safety:
+  reject_symlink_outside_allowlist: true
+  backup_before_write: true

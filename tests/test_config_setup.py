@@ -42,6 +42,8 @@ class ConfigSetupTests(unittest.TestCase):
             self.assertTrue((root / "registry" / "agents.json").exists())
             self.assertTrue((root / "inbox" / "laptop" / "codex").exists())
             self.assertTrue((root / ".curator" / "manifest.json").exists())
+            self.assertTrue((root / "adapters" / "codex.yaml").exists())
+            self.assertTrue((root / "adapters" / "claude.yaml").exists())
             self.assertNotIn("Ferdinand", (root / "agentmemory.yaml").read_text(encoding="utf-8"))
 
     def test_setup_workspace_refuses_to_overwrite_existing_config(self):

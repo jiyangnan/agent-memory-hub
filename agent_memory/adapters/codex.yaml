@@ -1,0 +1,22 @@
+id: codex
+name: Codex
+version: 1
+
+primary_memory:
+  path: "~/.codex/memory/shared.md"
+  mode: managed_section
+  marker: shared
+
+allowlist:
+  - "~/.codex/memory"
+
+cold_start:
+  install_mode: index_pointer
+  recommended_path: "~/.codex/MEMORY.md"
+
+skills:
+  target_template: "~/.codex/skills/<skill>/SKILL.md"
+
+safety:
+  reject_symlink_outside_allowlist: true
+  backup_before_write: true
