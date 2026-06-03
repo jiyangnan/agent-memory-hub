@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .bootstrap import render_bootstrap
 from .config import load_config
+from .curator import curate_apply, scan_status
 from .inbox import add_inbox_note
 from .registry import register_agent, render_members
 from .setup import setup_workspace
@@ -52,6 +53,12 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap = subparsers.add_parser("bootstrap", help="Render an agent cold-start contract")
     bootstrap.add_argument("--machine", required=True)
     bootstrap.add_argument("--agent", required=True)
+
+    subparsers.add_parser("status", help="Show inbox and curator status")
+    subparsers.add_parser("curate-dry-run", help="Validate pending notes without merging")
+    curate = subparsers.add_parser("curate-apply", help="Merge clean pending notes into canonical memory")
+    curate.add_argument("--machine", required=True)
+    curate.add_argument("--agent", required=True)
 
     return parser
 
@@ -122,6 +129,18 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as exc:
             print(str(exc))
             return 2
+        return 0
+
+    if args.command in ("status", "curate-dry-run"):
+        status = scan_status(root)
+        print(json.dumps(status, ensure_ascii=False, indent=2))
+        if args.command == "curate-dry-run" and (status["secret_blocked_notes"] or status["invalid_notes"]):
+            return 2
+        return 0
+
+    if args.command == "curate-apply":
+        result = curate_apply(root, machine=args.machine, agent=args.agent)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     parser.print_help()

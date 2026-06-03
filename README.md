@@ -39,6 +39,9 @@ agent-memory inbox-add \
   --why "Direct canonical edits can conflict." \
   --evidence "first setup" \
   --destination memory/lessons.md
+agent-memory status
+agent-memory curate-dry-run
+agent-memory curate-apply --machine laptop --agent codex
 ```
 
 ## Status

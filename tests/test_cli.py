@@ -149,6 +149,88 @@ class CliTests(unittest.TestCase):
             )
             self.assertIn("agent memory hub Cold Start Contract", bootstrap.stdout)
 
+    def test_cli_status_and_curate_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "setup",
+                    "--workspace",
+                    "demo",
+                    "--machine",
+                    "laptop",
+                    "--adapter",
+                    "codex",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "inbox-add",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                    "--type",
+                    "lesson",
+                    "--scope",
+                    "global",
+                    "--fact",
+                    "Curator should merge clean notes.",
+                    "--why",
+                    "Canonical memory needs a single writer.",
+                    "--evidence",
+                    "cli test",
+                    "--destination",
+                    "memory/lessons.md",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            status = subprocess.run(
+                [sys.executable, "-m", "agent_memory.cli", "--root", str(root), "status"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertIn('"pending_notes": 1', status.stdout)
+
+            apply = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_memory.cli",
+                    "--root",
+                    str(root),
+                    "curate-apply",
+                    "--machine",
+                    "laptop",
+                    "--agent",
+                    "codex",
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(apply.returncode, 0)
+            self.assertIn('"accepted": 1', apply.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
