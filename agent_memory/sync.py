@@ -51,8 +51,22 @@ def is_within(path: Path, parent: Path) -> bool:
         return False
 
 
-def render_shared_memory(root: Path) -> str:
+def render_identity_boundary(*, machine: str, agent: str) -> str:
+    receiver = f"{machine}/{agent}"
+    return (
+        "# Agent Memory Hub Shared Memory\n\n"
+        "## Identity Boundary\n\n"
+        f"- Current receiver: `{receiver}`\n"
+        "- Each entry's `Source` is the observer/writer, not automatically the current receiver.\n"
+        "- Shared memory may apply to this receiver through `Applicability` and `Scope`, "
+        "but it must not be retold as first-person experience unless `Source` matches the current receiver.\n"
+        "- When `Source` differs from the current receiver, report it as shared memory from that source.\n"
+    )
+
+
+def render_shared_memory(root: Path, *, machine: str, agent: str) -> str:
     sections = []
+    sections.append(render_identity_boundary(machine=machine, agent=agent).rstrip())
     for name in ("profile", "projects", "lessons", "workflows", "infra", "bootstrap"):
         path = root / "memory" / f"{name}.md"
         if path.exists():
@@ -99,7 +113,7 @@ def sync_dry_run(root: Path, *, home: Path, machine: str, agent: str) -> dict:
     if not target.exists():
         return {"status": "missing_target", "target_path": str(target), "preview": ""}
     existing = target.read_text(encoding="utf-8")
-    updated, found = replace_managed_section(existing, render_shared_memory(root))
+    updated, found = replace_managed_section(existing, render_shared_memory(root, machine=machine, agent=agent))
     if not found:
         return {"status": "missing_marker", "target_path": str(target), "preview": ""}
     return {"status": "would_update" if updated != existing else "no_change", "target_path": str(target), "preview": updated}
@@ -146,7 +160,7 @@ def sync_apply(root: Path, *, home: Path, machine: str, agent: str) -> dict:
     if not target.exists():
         return {"status": "missing_target", "target_path": str(target), "backup_path": ""}
     existing = target.read_text(encoding="utf-8")
-    updated, found = replace_managed_section(existing, render_shared_memory(root))
+    updated, found = replace_managed_section(existing, render_shared_memory(root, machine=machine, agent=agent))
     if not found:
         return {"status": "missing_marker", "target_path": str(target), "backup_path": ""}
     if updated == existing:

@@ -36,6 +36,7 @@ class SyncTests(unittest.TestCase):
             result = sync_dry_run(root, home=home, machine="laptop", agent="codex")
 
             self.assertEqual(result["status"], "would_update")
+            self.assertIn("Current receiver: `laptop/codex`", result["preview"])
             self.assertIn("Shared rule.", result["preview"])
             self.assertEqual(target.read_text(encoding="utf-8"), original)
 
@@ -81,10 +82,10 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(result["status"], "applied")
             self.assertIn("Before", text)
             self.assertIn("After", text)
+            self.assertIn("Current receiver: `laptop/hermes`", text)
             self.assertIn("New shared lesson.", text)
             self.assertNotIn("\nold\n", text)
 
 
 if __name__ == "__main__":
     unittest.main()
-

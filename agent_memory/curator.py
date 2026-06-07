@@ -50,7 +50,8 @@ def scan_status(root: Path) -> dict:
         metadata = parse_frontmatter(text)
         pending += 1
         notes.append(str(path.relative_to(root)))
-        if not metadata.get("id") or not metadata.get("type"):
+        required = ("id", "source_agent", "machine", "type", "scope", "applicability")
+        if any(not metadata.get(key) for key in required):
             invalid += 1
         if contains_secret(text):
             secret_blocked += 1
@@ -123,14 +124,24 @@ def append_canonical(root: Path, destination: str, text: str, metadata: dict[str
     target = root / destination
     target.parent.mkdir(parents=True, exist_ok=True)
     fact = section_text(text, "Fact")
+    source_perspective = section_text(text, "Source Perspective")
     why = section_text(text, "Why It Matters")
     evidence = section_text(text, "Evidence")
+    source = f"{metadata.get('machine', 'unknown')}/{metadata.get('source_agent', 'unknown')}"
     block = (
         f"\n## {metadata.get('id', 'note')}\n\n"
+        f"- Source: `{source}`\n"
+        f"- Scope: `{metadata.get('scope', 'global')}`\n"
+        f"- Applicability: `{metadata.get('applicability', 'all_agents')}`\n"
+        f"- Type: `{metadata.get('type', 'unknown')}`\n"
         f"- Fact: {fact}\n"
-        f"- Why: {why}\n"
-        f"- Evidence: {evidence}\n"
     )
+    if source_perspective:
+        block += f"- Source Perspective: {source_perspective}\n"
+    if why:
+        block += f"- Why: {why}\n"
+    if evidence:
+        block += f"- Evidence: {evidence}\n"
     with target.open("a", encoding="utf-8") as handle:
         handle.write(block)
 
@@ -144,7 +155,8 @@ def curate_apply(root: Path, *, machine: str, agent: str) -> dict:
         metadata = parse_frontmatter(text)
         note_id = metadata.get("id", path.stem)
         fact = section_text(text, "Fact")
-        if contains_secret(text) or not metadata.get("type"):
+        required = ("id", "source_agent", "machine", "type", "scope", "applicability")
+        if contains_secret(text) or any(not metadata.get(key) for key in required):
             archive_path = archive_note(root, path, "needs_user_review")
             append_processed(root, note_id=note_id, status="needs_user_review", archive_path=archive_path, fact=fact)
             needs_review += 1
@@ -171,4 +183,3 @@ def curate_apply(root: Path, *, machine: str, agent: str) -> dict:
         "machine": machine,
         "agent": agent,
     }
-

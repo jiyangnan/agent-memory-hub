@@ -70,6 +70,7 @@ class RefreshTests(unittest.TestCase):
             self.assertEqual(result["status"], "sync_ready")
             self.assertEqual(result["pull"]["status"], "up_to_date")
             self.assertEqual(result["sync"]["status"], "would_update")
+            self.assertIn("Current receiver: `laptop/codex`", result["sync"]["preview"])
             self.assertIn("Refresh shared rule.", result["sync"]["preview"])
             self.assertEqual(target.read_text(encoding="utf-8"), original)
 
@@ -83,6 +84,7 @@ class RefreshTests(unittest.TestCase):
             self.assertEqual(result["status"], "sync_applied")
             self.assertEqual(result["pull"]["status"], "up_to_date")
             self.assertEqual(result["sync"]["status"], "applied")
+            self.assertIn("Current receiver: `laptop/codex`", target.read_text(encoding="utf-8"))
             self.assertIn("Refresh shared rule.", target.read_text(encoding="utf-8"))
 
     def test_refresh_does_not_sync_when_pull_is_blocked(self):

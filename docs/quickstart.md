@@ -72,11 +72,16 @@ agent-memory inbox-add \
   --agent codex \
   --type lesson \
   --scope global \
+  --applicability all_agents \
   --fact "Shared memory should be curated." \
   --why "Direct canonical edits can conflict." \
   --evidence "quickstart" \
   --destination memory/lessons.md
 ```
+
+Use `--applicability source_only` for a note that should stay tied to the
+observing machine/agent. For rules that apply across same-family agents, write
+facts such as `For Codex-family agents...`, not `Codex's role...`.
 
 ## 7. Curate And Save
 

@@ -4,6 +4,17 @@ The curator is the single-writer merge process for canonical shared memory.
 
 Agents write inbox notes. The curator validates and merges accepted notes.
 
+Inbox notes must include source perspective metadata:
+
+```text
+observer
+applicability
+```
+
+The curator preserves `Source`, `Scope`, `Applicability`, and `Source
+Perspective` in canonical memory. Malformed notes move to review instead of
+being merged.
+
 ```bash
 agent-memory status
 agent-memory curate-dry-run
@@ -31,4 +42,3 @@ Accepted notes move to:
 ```text
 archive/accepted/
 ```
-

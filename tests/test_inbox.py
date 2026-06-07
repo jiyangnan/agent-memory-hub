@@ -34,7 +34,11 @@ class InboxTests(unittest.TestCase):
             text = note["path"].read_text(encoding="utf-8")
             self.assertIn("source_agent: codex", text)
             self.assertIn("machine: laptop", text)
+            self.assertIn("observer: laptop/codex", text)
             self.assertIn("type: lesson", text)
+            self.assertIn("applicability: all_agents", text)
+            self.assertIn("## Source Perspective", text)
+            self.assertIn("Observed by `laptop/codex`", text)
             self.assertIn("content_hash: sha256:", text)
             self.assertIn("Refresh must pull cloud state", text)
 
@@ -55,7 +59,44 @@ class InboxTests(unittest.TestCase):
                     suggested_destination="memory/infra.md",
                 )
 
+    def test_add_inbox_note_rejects_ambiguous_agent_family_wording(self):
+        with self.tmpdir() as root:
+            setup_workspace(root, workspace="demo", machines=["laptop"], adapters=["codex"])
+
+            with self.assertRaisesRegex(ValueError, "ambiguous agent-family wording"):
+                add_inbox_note(
+                    root,
+                    machine="laptop",
+                    agent="codex",
+                    note_type="workflow",
+                    scope="global",
+                    fact="Codex's role is to prepare release notes.",
+                    why="Other Codex instances may misread this as first-person memory.",
+                    evidence="unit test",
+                    suggested_destination="memory/workflows.md",
+                )
+
+    def test_add_inbox_note_allows_explicit_agent_family_wording(self):
+        with self.tmpdir() as root:
+            setup_workspace(root, workspace="demo", machines=["laptop"], adapters=["codex"])
+
+            note = add_inbox_note(
+                root,
+                machine="laptop",
+                agent="codex",
+                note_type="workflow",
+                scope="global",
+                applicability="all_codex_agents",
+                fact="For Codex-family agents, the expected role is to prepare release notes.",
+                why="The wording separates observer identity from applicability.",
+                evidence="unit test",
+                suggested_destination="memory/workflows.md",
+            )
+
+            text = note["path"].read_text(encoding="utf-8")
+            self.assertIn("applicability: all_codex_agents", text)
+            self.assertIn("For Codex-family agents", text)
+
 
 if __name__ == "__main__":
     unittest.main()
-

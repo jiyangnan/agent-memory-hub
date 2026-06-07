@@ -11,6 +11,15 @@ The command only edits the content between these markers:
 
 Everything outside the marker is treated as the agent's local memory and is preserved.
 
+The managed section begins with an identity boundary such as:
+
+```text
+Current receiver: `laptop/codex`
+```
+
+This reminds downstream agents that a canonical entry's `Source` is the
+observer/writer, not automatically the current receiver.
+
 ## Install Marker
 
 Run this once per agent after registration:

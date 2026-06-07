@@ -38,6 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     inbox.add_argument("--agent", required=True)
     inbox.add_argument("--type", required=True)
     inbox.add_argument("--scope", default="global")
+    inbox.add_argument("--applicability", default="all_agents")
     inbox.add_argument("--priority", default="normal")
     inbox.add_argument("--fact", required=True)
     inbox.add_argument("--why", required=True)
@@ -127,6 +128,7 @@ def main(argv: list[str] | None = None) -> int:
                 agent=args.agent,
                 note_type=args.type,
                 scope=args.scope,
+                applicability=args.applicability,
                 priority=args.priority,
                 fact=args.fact,
                 why=args.why,

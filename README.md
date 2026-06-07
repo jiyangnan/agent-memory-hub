@@ -36,6 +36,7 @@ agent-memory inbox-add \
   --agent codex \
   --type lesson \
   --scope global \
+  --applicability all_agents \
   --fact "Shared memory should be curated." \
   --why "Direct canonical edits can conflict." \
   --evidence "first setup" \
@@ -54,12 +55,22 @@ agent-memory refresh --machine laptop --agent codex --apply
 
 This repository is the open-source framework. User-specific memory state is created by `agent-memory setup`.
 
+## Perspective Safety
+
+Shared memory preserves source perspective. Inbox notes record `observer` and
+`applicability`; downstream sync renders the current receiver so an agent does
+not mistake another instance's memory for first-person experience.
+
+Prefer facts such as `For Codex-family agents...` over ambiguous wording such as
+`Codex's role...`.
+
 ## Docs
 
 - [Quickstart](docs/quickstart.md)
 - [Architecture](docs/architecture.md)
 - [Adapters](docs/adapters.md)
 - [Onboarding](docs/onboarding.md)
+- [Perspective Safety](docs/perspective.md)
 - [Sync](docs/sync.md)
 - [Refresh](docs/refresh.md)
 - [Cloud](docs/cloud.md)
