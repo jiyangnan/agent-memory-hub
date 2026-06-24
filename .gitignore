@@ -20,3 +20,5 @@ dist/
 .curator/backups/
 *.tmp
 
+# Build venvs (for local twine packaging)
+.build-venv/
