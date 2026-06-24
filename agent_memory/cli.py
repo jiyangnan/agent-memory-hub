@@ -7,13 +7,28 @@ from pathlib import Path
 from .bootstrap import render_bootstrap
 from .cloud import cloud_pull, cloud_push, cloud_save, cloud_status
 from .config import load_config
-from .curator import curate_apply, scan_status
+from .curator import archive_canonical_entry, curate_apply, scan_status
 from .inbox import add_inbox_note
 from .refresh import refresh_shared_memory
 from .registry import register_agent, render_members
 from .setup import setup_workspace
 from .sync import install_marker, sync_apply, sync_dry_run
 from .triggers import classify_trigger
+
+
+def _required(parser: argparse.ArgumentParser) -> argparse._ArgumentGroup:
+    """Return (or create) the parser's "required arguments" group.
+
+    argparse's default ``--help`` output lumps required and optional flags
+    together under ``options:``, so users have no way to tell which flags
+    they must pass until the command fails. Routing every ``required=True``
+    flag through this group splits ``--help`` into ``required arguments``
+    and ``options`` sections, making each subcommand self-documenting.
+    """
+    for group in parser._action_groups:
+        if group.title == "required arguments":
+            return group
+    return parser.add_argument_group("required arguments")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,35 +49,72 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--force", action="store_true")
 
     inbox = subparsers.add_parser("inbox-add", help="Write a shared-memory inbox note")
-    inbox.add_argument("--machine", required=True)
-    inbox.add_argument("--agent", required=True)
-    inbox.add_argument("--type", required=True)
+    _required(inbox).add_argument("--machine", required=True)
+    _required(inbox).add_argument("--agent", required=True)
+    _required(inbox).add_argument("--type", required=True)
+    _required(inbox).add_argument("--fact", required=True)
+    _required(inbox).add_argument("--why", required=True)
+    _required(inbox).add_argument("--evidence", required=True)
+    _required(inbox).add_argument("--destination", required=True)
     inbox.add_argument("--scope", default="global")
     inbox.add_argument("--applicability", default="all_agents")
     inbox.add_argument("--priority", default="normal")
-    inbox.add_argument("--fact", required=True)
-    inbox.add_argument("--why", required=True)
-    inbox.add_argument("--evidence", required=True)
-    inbox.add_argument("--destination", required=True)
 
     register = subparsers.add_parser("register-agent", help="Register a machine/agent pair")
-    register.add_argument("--machine", required=True)
-    register.add_argument("--agent", required=True)
+    _required(register).add_argument("--machine", required=True)
+    _required(register).add_argument("--agent", required=True)
+    _required(register).add_argument("--primary-memory", required=True)
     register.add_argument("--adapter", default="")
-    register.add_argument("--primary-memory", required=True)
     register.add_argument("--skill-target", default="")
 
     subparsers.add_parser("members", help="Show registered agents")
 
     bootstrap = subparsers.add_parser("bootstrap", help="Render an agent cold-start contract")
-    bootstrap.add_argument("--machine", required=True)
-    bootstrap.add_argument("--agent", required=True)
+    _required(bootstrap).add_argument("--machine", required=True)
+    _required(bootstrap).add_argument("--agent", required=True)
 
     subparsers.add_parser("status", help="Show inbox and curator status")
     subparsers.add_parser("curate-dry-run", help="Validate pending notes without merging")
     curate = subparsers.add_parser("curate-apply", help="Merge clean pending notes into canonical memory")
-    curate.add_argument("--machine", required=True)
-    curate.add_argument("--agent", required=True)
+    _required(curate).add_argument("--machine", required=True)
+    _required(curate).add_argument("--agent", required=True)
+
+    archive = subparsers.add_parser(
+        "archive",
+        help="Archive a canonical memory block (excise + persist under archive/superseded/)",
+    )
+    _required(archive).add_argument(
+        "--file",
+        required=True,
+        help="Canonical memory file under memory/ (e.g. memory/workflows.md)",
+    )
+    _required(archive).add_argument(
+        "--start-line",
+        required=True,
+        type=int,
+        help="1-based first line of the block to archive (inclusive)",
+    )
+    _required(archive).add_argument(
+        "--end-line",
+        required=True,
+        type=int,
+        help="1-based last line of the block to archive (inclusive)",
+    )
+    _required(archive).add_argument(
+        "--reason",
+        required=True,
+        help="Why this block is being archived (recorded in provenance frontmatter)",
+    )
+    _required(archive).add_argument(
+        "--archived-by",
+        required=True,
+        help="<machine>/<agent> identity of the curator authorizing the archive",
+    )
+    archive.add_argument(
+        "--slug",
+        default=None,
+        help="Optional short id appended to the archive filename (defaults to a slug of the first line)",
+    )
 
     cloud_status_parser = subparsers.add_parser("cloud-status", help="Check Git remote readiness")
     cloud_status_parser.add_argument("--remote", default="origin")
@@ -70,15 +122,15 @@ def build_parser() -> argparse.ArgumentParser:
     cloud_pull_parser.add_argument("--remote", default="origin")
     cloud_pull_parser.add_argument("--branch", default=None)
     cloud_save_parser = subparsers.add_parser("cloud-save", help="Commit shared memory state only")
-    cloud_save_parser.add_argument("--message", required=True)
+    _required(cloud_save_parser).add_argument("--message", required=True)
     cloud_save_parser.add_argument("--remote", default="origin")
     cloud_push_parser = subparsers.add_parser("cloud-push", help="Push committed shared state")
     cloud_push_parser.add_argument("--remote", default="origin")
     cloud_push_parser.add_argument("--branch", default=None)
 
     sync = subparsers.add_parser("sync", help="Sync canonical shared memory into an agent memory file")
-    sync.add_argument("--machine", required=True)
-    sync.add_argument("--agent", required=True)
+    _required(sync).add_argument("--machine", required=True)
+    _required(sync).add_argument("--agent", required=True)
     sync.add_argument("--home", default=str(Path.home()))
     sync_mode = sync.add_mutually_exclusive_group(required=True)
     sync_mode.add_argument("--dry-run", action="store_true")
@@ -86,8 +138,8 @@ def build_parser() -> argparse.ArgumentParser:
     sync_mode.add_argument("--apply", action="store_true")
 
     refresh = subparsers.add_parser("refresh", help="Pull cloud memory and sync it into this agent")
-    refresh.add_argument("--machine", required=True)
-    refresh.add_argument("--agent", required=True)
+    _required(refresh).add_argument("--machine", required=True)
+    _required(refresh).add_argument("--agent", required=True)
     refresh.add_argument("--home", default=str(Path.home()))
     refresh.add_argument("--remote", default="origin")
     refresh.add_argument("--branch", default=None)
@@ -175,6 +227,34 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "curate-apply":
         result = curate_apply(root, machine=args.machine, agent=args.agent)
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "archive":
+        try:
+            archive_path = archive_canonical_entry(
+                root,
+                file=args.file,
+                start_line=args.start_line,
+                end_line=args.end_line,
+                reason=args.reason,
+                archived_by=args.archived_by,
+                slug=args.slug,
+            )
+        except ValueError as exc:
+            print(str(exc))
+            return 2
+        print(
+            json.dumps(
+                {
+                    "status": "archived",
+                    "archive_path": str(archive_path.relative_to(root)),
+                    "source_file": args.file,
+                    "source_lines": f"{args.start_line}-{args.end_line}",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
 
     if args.command == "cloud-status":

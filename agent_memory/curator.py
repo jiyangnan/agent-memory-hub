@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from datetime import date, datetime
 from pathlib import Path
@@ -144,6 +145,116 @@ def append_canonical(root: Path, destination: str, text: str, metadata: dict[str
         block += f"- Evidence: {evidence}\n"
     with target.open("a", encoding="utf-8") as handle:
         handle.write(block)
+
+
+def archive_canonical_entry(
+    root: Path,
+    *,
+    file: str,
+    start_line: int,
+    end_line: int,
+    reason: str,
+    archived_by: str,
+    slug: str | None = None,
+) -> Path:
+    """Excise a contiguous block from a canonical memory file and persist it under archive/superseded/.
+
+    The curator's standard ``curate_apply`` flow is append-only by design — it
+    merges inbox notes into ``memory/*.md`` but never removes existing entries.
+    Real-world canonical memory accumulates superseded snapshots (workflow
+    rewrites, duplicate writes), so a curator-authorized archive primitive is
+    required to keep the downstream BEGIN/END managed section bounded.
+
+    The archived block is saved to::
+
+        archive/superseded/<machine>/<agent>/<timestamp>-<slug>.md
+
+    with provenance frontmatter recording ``source_file``, ``source_lines``,
+    ``supersede_reason``, ``archived_by``, and ``archived_at``. The lines are
+    then removed from ``file``.
+
+    Parameters
+    ----------
+    root:
+        Workspace root.
+    file:
+        Path relative to ``root`` of the canonical memory file
+        (e.g. ``memory/workflows.md``). Must reside under ``memory/``.
+    start_line, end_line:
+        1-based inclusive line range to excise. Must satisfy
+        ``1 <= start_line <= end_line``.
+    reason:
+        Free-form human explanation of why the block is being archived
+        (typically references the superseding entry or the duplicate-write
+        situation). Stored in the archive frontmatter.
+    archived_by:
+        ``machine/agent`` identity of the curator authorizing the archive.
+    slug:
+        Optional short kebab-case identifier appended to the archive file
+        name. Defaults to a hash-like sanitized excerpt of the first line.
+
+    Returns
+    -------
+    pathlib.Path
+        Absolute path of the newly written archive file.
+
+    Raises
+    ------
+    ValueError
+        If ``file`` is not under ``memory/``, the line range is invalid, or
+        the canonical file does not exist.
+    """
+    if not file.startswith("memory/"):
+        raise ValueError(f"file must be under memory/: {file}")
+    if start_line < 1 or end_line < start_line:
+        raise ValueError(
+            f"invalid line range: start_line={start_line} end_line={end_line}"
+        )
+    if "/" not in archived_by or not archived_by.replace("/", "").replace("-", "").replace("_", "").isalnum():
+        raise ValueError(
+            f"archived_by must be of the form '<machine>/<agent>': {archived_by!r}"
+        )
+
+    canonical = root / file
+    if not canonical.exists():
+        raise ValueError(f"canonical file not found: {file}")
+
+    lines = canonical.read_text(encoding="utf-8").splitlines(keepends=True)
+    if end_line > len(lines):
+        raise ValueError(
+            f"end_line {end_line} exceeds file length {len(lines)}"
+        )
+
+    excised_lines = lines[start_line - 1: end_line]
+    excised_text = "".join(excised_lines)
+
+    machine, agent = archived_by.split("/", 1)
+    if not slug:
+        first = excised_text.lstrip("#- \n").splitlines()[0] if excised_text.strip() else "entry"
+        slug = re.sub(r"[^A-Za-z0-9]+", "-", first).strip("-").lower()[:60] or "entry"
+
+    timestamp = datetime.now().astimezone().isoformat(timespec="seconds").replace(":", "-")
+    archive_root = root / "archive" / "superseded" / machine / agent
+    archive_root.mkdir(parents=True, exist_ok=True)
+    archive_path = archive_root / f"{timestamp}-{slug}.md"
+
+    frontmatter = (
+        "---\n"
+        f"archived_at: {datetime.now().astimezone().isoformat(timespec='seconds')}\n"
+        f"archived_by: {archived_by}\n"
+        f"archive_status: superseded\n"
+        f"source_file: {file}\n"
+        f"source_lines: {start_line}-{end_line}\n"
+        f"supersede_reason: |\n"
+        + "".join(f"  {line}\n" for line in reason.splitlines() or [reason])
+        + "---\n\n"
+    )
+    archive_path.write_text(frontmatter + excised_text, encoding="utf-8")
+
+    remaining = lines[: start_line - 1] + lines[end_line:]
+    canonical.write_text("".join(remaining), encoding="utf-8")
+
+    return archive_path
 
 
 def curate_apply(root: Path, *, machine: str, agent: str) -> dict:

@@ -4,6 +4,37 @@ All notable changes to **agent-memory-hub** are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-06-24
+
+### Added
+- **`agent-memory archive` subcommand** (`curator.archive_canonical_entry`). Excises a line range from a canonical memory file (`memory/*.md`) and persists the original block to `archive/superseded/<machine>/<agent>/<timestamp>-<slug>.md` with provenance frontmatter (`source_file`, `source_lines`, `supersede_reason`, `archived_by`, `archived_at`).
+
+  Closes the architectural gap exposed by the curator being append-only: until 0.4.0, removing a superseded canonical entry required out-of-band file edits, which violated the "canonical changes only through the curator flow" rule. The new primitive makes archival a first-class curator operation.
+
+  Usage:
+  ```bash
+  agent-memory archive \
+    --file memory/workflows.md \
+    --start-line 26 \
+    --end-line 34 \
+    --reason "Superseded by L35 same-day OBSOLETE declaration" \
+    --archived-by laptop/codex
+  ```
+
+- **CLI `--help` groups**: required flags now appear under their own `required arguments` section in every subcommand's help output, separated from optional flags. Previously argparse lumped everything under `options:` and users had to run the command to discover required flags via error messages. Routed through a new `_required(parser)` helper.
+
+- **`docs/auto-refresh.md`** session auto-refresh playbook. Optional pattern for wiring `git pull --rebase --autostash` + `agent-memory refresh --apply` into agent cold-start hooks (Claude Code, Codex, Hermes, OpenClaw). Documents the TTL-keyed marker pattern (vs the PID-leak pattern of an earlier draft) and lists known limitations explicitly.
+
+### Tests
+- 2 new tests in `tests/test_curator.py`:
+  - `test_archive_canonical_entry_excises_block_and_records_provenance`
+  - `test_archive_canonical_entry_rejects_invalid_inputs`
+- Full suite 44/44 passing.
+
+### Notes
+- The archive primitive intentionally does NOT chain with `curate-apply`. Curate is for additions; archive is for removals. Composing both requires explicit ordering by the curator.
+- Auto-refresh playbook ships as docs/, not code. The hook implementation is one bash script the user installs at `/usr/local/bin/agent-memory-autorefresh`; hub does not modify the user's home directory.
+
 ## [0.3.0] — 2026-06-24
 
 ### Added

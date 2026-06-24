@@ -2,7 +2,7 @@ import json
 import unittest
 from pathlib import Path
 
-from agent_memory.curator import curate_apply, scan_status
+from agent_memory.curator import archive_canonical_entry, curate_apply, scan_status
 from agent_memory.inbox import add_inbox_note
 from agent_memory.setup import setup_workspace
 
@@ -121,6 +121,106 @@ class CuratorTests(unittest.TestCase):
             self.assertEqual(result["needs_review"], 1)
             self.assertFalse(bad_note.exists())
             self.assertTrue(list((root / "archive" / "needs_user_review").glob("**/*.md")))
+
+
+    def test_archive_canonical_entry_excises_block_and_records_provenance(self):
+        with self.tmpdir() as root:
+            setup_workspace(root, workspace="demo", machines=["laptop"], adapters=["codex"])
+            lessons = root / "memory" / "lessons.md"
+            lessons.write_text(
+                "# Lessons\n"
+                "\n"
+                "## Entry A — keep\n"
+                "- Fact: Keep this entry intact.\n"
+                "\n"
+                "## Entry B — archive\n"
+                "- Source: `laptop/codex`\n"
+                "- Fact: This entry should be archived.\n"
+                "- Why: Superseded by Entry C.\n"
+                "\n"
+                "## Entry C — keep\n"
+                "- Fact: The newer fact, which supersedes Entry B.\n",
+                encoding="utf-8",
+            )
+
+            archive_path = archive_canonical_entry(
+                root,
+                file="memory/lessons.md",
+                start_line=6,
+                end_line=10,
+                reason="Superseded by Entry C (newer fact, same topic).",
+                archived_by="laptop/codex",
+                slug="entry-b-superseded-by-c",
+            )
+
+            # archive file lives at archive/superseded/<machine>/<agent>/<ts>-<slug>.md
+            self.assertTrue(archive_path.exists())
+            relative = archive_path.relative_to(root)
+            self.assertEqual(relative.parts[:4], ("archive", "superseded", "laptop", "codex"))
+            self.assertIn("entry-b-superseded-by-c", relative.name)
+
+            # frontmatter records provenance
+            archived_text = archive_path.read_text(encoding="utf-8")
+            self.assertIn("archived_by: laptop/codex", archived_text)
+            self.assertIn("source_file: memory/lessons.md", archived_text)
+            self.assertIn("source_lines: 6-10", archived_text)
+            self.assertIn("Superseded by Entry C", archived_text)
+            # body preserves the excised block
+            self.assertIn("This entry should be archived.", archived_text)
+            self.assertIn("Source: `laptop/codex`", archived_text)
+
+            # canonical no longer contains Entry B but still has A and C
+            remaining = lessons.read_text(encoding="utf-8")
+            self.assertIn("Entry A — keep", remaining)
+            self.assertIn("Entry C — keep", remaining)
+            self.assertNotIn("Entry B — archive", remaining)
+            self.assertNotIn("This entry should be archived.", remaining)
+            self.assertNotIn("Superseded by Entry C.", remaining)
+
+    def test_archive_canonical_entry_rejects_invalid_inputs(self):
+        with self.tmpdir() as root:
+            setup_workspace(root, workspace="demo", machines=["laptop"], adapters=["codex"])
+            (root / "memory" / "lessons.md").write_text("# Lessons\n\nshort\n", encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                archive_canonical_entry(
+                    root,
+                    file="outside/lessons.md",  # not under memory/
+                    start_line=1,
+                    end_line=1,
+                    reason="x",
+                    archived_by="laptop/codex",
+                )
+
+            with self.assertRaises(ValueError):
+                archive_canonical_entry(
+                    root,
+                    file="memory/lessons.md",
+                    start_line=5,
+                    end_line=2,  # start > end
+                    reason="x",
+                    archived_by="laptop/codex",
+                )
+
+            with self.assertRaises(ValueError):
+                archive_canonical_entry(
+                    root,
+                    file="memory/lessons.md",
+                    start_line=1,
+                    end_line=999,  # exceeds file length
+                    reason="x",
+                    archived_by="laptop/codex",
+                )
+
+            with self.assertRaises(ValueError):
+                archive_canonical_entry(
+                    root,
+                    file="memory/lessons.md",
+                    start_line=1,
+                    end_line=1,
+                    reason="x",
+                    archived_by="not-a-valid-identity",  # missing slash
+                )
 
 
 if __name__ == "__main__":
