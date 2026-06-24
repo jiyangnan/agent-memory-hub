@@ -29,9 +29,11 @@ pip install git+https://github.com/jiyangnan/agent-memory-hub.git
 > **Note on PyPI**: the name `agent-memory-hub` on PyPI is currently held by an
 > unrelated placeholder package (see `pypi.org/project/agent-memory-hub/`,
 > maintainer `maintainers@example.com`, homepage `github.com/example/...`).
-> A PEP 541 name dispute is being filed. Until that resolves, install via the
-> GitHub URL above — release artifacts (wheel + sdist) are also attached to
-> every GitHub Release for offline / pinned installs.
+> A PEP 541 name dispute was filed 2026-06-24 at
+> [pypi/support#11216](https://github.com/pypi/support/issues/11216). Until
+> that resolves, install via the GitHub URL above — release artifacts
+> (wheel + sdist) are also attached to every GitHub Release for offline /
+> pinned installs.
 
 ## Quickstart
 
