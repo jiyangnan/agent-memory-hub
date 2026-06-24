@@ -16,9 +16,29 @@ agent learns
   -> agent cold-start perception
 ```
 
+## Install
+
+```bash
+# Install latest release directly from GitHub
+pip install git+https://github.com/jiyangnan/agent-memory-hub.git@v0.4.0
+
+# Or pin to main
+pip install git+https://github.com/jiyangnan/agent-memory-hub.git
+```
+
+> **Note on PyPI**: the name `agent-memory-hub` on PyPI is currently held by an
+> unrelated placeholder package (see `pypi.org/project/agent-memory-hub/`,
+> maintainer `maintainers@example.com`, homepage `github.com/example/...`).
+> A PEP 541 name dispute is being filed. Until that resolves, install via the
+> GitHub URL above — release artifacts (wheel + sdist) are also attached to
+> every GitHub Release for offline / pinned installs.
+
 ## Quickstart
 
 ```bash
+# Or clone + editable install if you want to hack on it
+git clone https://github.com/jiyangnan/agent-memory-hub.git
+cd agent-memory-hub
 python3 -m pip install -e .
 agent-memory setup --workspace my-agent-memory --machine laptop --adapter codex
 agent-memory register-agent \

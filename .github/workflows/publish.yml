@@ -1,16 +1,16 @@
-name: Publish to PyPI
+name: Build release distributions
 
-# Publishes the package to PyPI when a `vX.Y.Z` tag is pushed.
-# Uses PyPI Trusted Publishing (OIDC) — no API token stored anywhere.
+# Builds wheel + sdist on every `vX.Y.Z` tag push and attaches them to the
+# corresponding GitHub Release. The PyPI publish step is gated behind a
+# repository variable (`vars.PYPI_PUBLISH_ENABLED == 'true'`) so it stays
+# dormant until the PyPI name dispute resolves (see README install note).
 #
-# One-time setup on PyPI (https://pypi.org/manage/account/publishing/):
-#   - PyPI project: agent-memory-hub
-#   - Owner: jiyangnan
-#   - Repository name: agent-memory-hub
-#   - Workflow filename: publish.yml
-#   - Environment name: pypi
-#
-# Once configured, every `git tag vX.Y.Z && git push --tags` triggers a release.
+# Enabling PyPI publishing later:
+#   1. Configure PyPI Trusted Publishing for this repo (project / owner /
+#      workflow filename `publish.yml` / environment `pypi`).
+#   2. Settings → Environments → create environment `pypi`.
+#   3. Settings → Variables → set `PYPI_PUBLISH_ENABLED = true`.
+#   4. Re-push the tag (or push a new patch tag).
 
 on:
   push:
@@ -46,9 +46,28 @@ jobs:
           name: dist
           path: dist/
 
-  publish:
-    name: Publish to PyPI
+  attach-to-release:
+    name: Attach wheel + sdist to GitHub Release
     needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Upload to GitHub Release
+        run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  publish-pypi:
+    name: Publish to PyPI (gated)
+    needs: build
+    if: vars.PYPI_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
