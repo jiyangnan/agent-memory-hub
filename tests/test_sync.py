@@ -3,7 +3,13 @@ from pathlib import Path
 
 from agent_memory.registry import register_agent
 from agent_memory.setup import setup_workspace
-from agent_memory.sync import install_marker, sync_apply, sync_dry_run
+from agent_memory.sync import (
+    _condense_canonical,
+    install_marker,
+    render_shared_memory,
+    sync_apply,
+    sync_dry_run,
+)
 
 
 class SyncTests(unittest.TestCase):
@@ -85,6 +91,68 @@ class SyncTests(unittest.TestCase):
             self.assertIn("Current receiver: `laptop/hermes`", text)
             self.assertIn("New shared lesson.", text)
             self.assertNotIn("\nold\n", text)
+
+
+    def test_condense_canonical_compresses_structured_entries(self):
+        content = (
+            "# Lessons\n\n"
+            "## 2026-06-22T16:44:58+08:00 - 2026-06-22-macbook-claude-test-entry\n\n"
+            "- Source: `macbook/claude`\n"
+            "- Scope: `global`\n"
+            "- Applicability: `all_agents`\n"
+            "- Type: `lesson`\n"
+            "- Fact: This is the actual fact text we want to keep.\n"
+            "- Source Perspective: Observed by `macbook/claude`.\n"
+            "- Why: This explains motivation that downstream agents do not need.\n"
+            "- Evidence: This is supporting evidence agents do not need either.\n"
+        )
+
+        condensed = _condense_canonical(content)
+
+        self.assertIn("This is the actual fact text we want to keep.", condensed)
+        self.assertIn("(src:macbook/claude)", condensed)
+        # metadata fields are stripped
+        self.assertNotIn("explains motivation", condensed)
+        self.assertNotIn("supporting evidence", condensed)
+        self.assertNotIn("Source Perspective", condensed)
+        # bullet form replaces full ## header
+        self.assertTrue(condensed.lstrip().startswith("# Lessons") or "- **" in condensed)
+        # significant size reduction
+        self.assertLess(len(condensed), len(content) // 2)
+
+    def test_condense_canonical_passes_through_unstructured(self):
+        content = (
+            "# Bootstrap\n\n"
+            "This file contains the cold-start contract.\n"
+            "Multiple lines of plain markdown should pass through unchanged.\n"
+        )
+
+        condensed = _condense_canonical(content)
+
+        # no `- Fact:` field → returns content as-is
+        self.assertEqual(condensed, content)
+
+    def test_render_shared_memory_uses_condensed_form(self):
+        with self.tmpdir() as tmp:
+            root = tmp / "repo"
+            setup_workspace(root, workspace="demo", machines=["laptop"], adapters=["codex"])
+            (root / "memory" / "lessons.md").write_text(
+                "# Lessons\n\n"
+                "## 2026-06-22T16:44:58+08:00 - sample-entry\n\n"
+                "- Source: `laptop/codex`\n"
+                "- Type: `lesson`\n"
+                "- Fact: Compression should happen here.\n"
+                "- Why: This Why line should be stripped.\n"
+                "- Evidence: This Evidence line too.\n",
+                encoding="utf-8",
+            )
+
+            rendered = render_shared_memory(root, machine="laptop", agent="codex")
+
+            self.assertIn("Compression should happen here.", rendered)
+            self.assertIn("(src:laptop/codex)", rendered)
+            self.assertNotIn("This Why line should be stripped.", rendered)
+            self.assertNotIn("This Evidence line too.", rendered)
 
 
 if __name__ == "__main__":
